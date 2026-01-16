@@ -1,11 +1,6 @@
 #include "hooks.h"
 #include "trampoline.h"
-
-enum WMPFlags {
-    FLAG_PLAYING = 0x0002,
-    FLAG_STOPPED = 0x0003,
-    FLAG_PAUSED  = 0x0004
-};
+#include "defs.h"
 
 typedef HANDLE (WINAPI *_OpenEventW) (DWORD dwDesiredAccess, WINBOOL bInheritHandle, LPCWSTR lpName);
 typedef WINBOOL (WINAPI *_CloseHandle) (HANDLE hObject);
@@ -24,11 +19,10 @@ HANDLE WINAPI DetourOpenEventW(DWORD dwDesiredAccess, WINBOOL bInheritHandle, LP
 
     if (lpName == NULL) return NULL;
 
-    PWSTR PluginGuid = L"Global\\{1DE128B2-A096-4e98-9F70-329EF9B20DC7}\0";
-
-    if (_wcsicmp(lpName, PluginGuid) == 0) {
-        return (PDWORD)123123;
+    if (_wcsicmp(lpName, PLUGIN_GUID) == 0) {
+        return (PDWORD)1337;
     }
+    
     return OrigOpenEventW(dwDesiredAccess, bInheritHandle, lpName);
 }
 
@@ -46,10 +40,10 @@ LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpRes
     }
 
     if (_wcsicmp(lpValueName, L"WMPState") == 0) {
-        *(PDWORD)lpData = (0x0002 << 16) | (DWORD)26;
+        *(PDWORD)lpData = (FLAG_PLAYING << 16) | (DWORD)26;
         *lpType = REG_DWORD;
         *lpcbData = sizeof(DWORD);
-        
+
         return ERROR_SUCCESS;
     }
 
