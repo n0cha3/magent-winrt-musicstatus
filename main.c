@@ -1,7 +1,6 @@
 #include "main.h"
 #include "hooks.h"
 
-
 __declspec(dllexport) VOID __cdecl exportme(VOID) {
 	return;
 }

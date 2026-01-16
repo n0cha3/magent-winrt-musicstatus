@@ -1,6 +1,12 @@
 #include "hooks.h"
 #include "trampoline.h"
 
+enum WMPFlags {
+    FLAG_PLAYING = 0x0002,
+    FLAG_STOPPED = 0x0003,
+    FLAG_PAUSED  = 0x0004
+};
+
 typedef HANDLE (WINAPI *_OpenEventW) (DWORD dwDesiredAccess, WINBOOL bInheritHandle, LPCWSTR lpName);
 typedef WINBOOL (WINAPI *_CloseHandle) (HANDLE hObject);
 typedef UINT (WINAPI *_GlobalGetAtomNameW) (ATOM nAtom, LPWSTR lpBuffer, int nSize);
@@ -29,15 +35,21 @@ HANDLE WINAPI DetourOpenEventW(DWORD dwDesiredAccess, WINBOOL bInheritHandle, LP
 LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData) {
     wprintf(L"\n%S", lpValueName);
 
+    if (lpValueName == NULL) return OrigRegQueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
+
     if (_wcsicmp(lpValueName, L"WMPLen") == 0) {
         *(PDWORD)lpData = 1337;
         *lpType = REG_DWORD;
+        *lpcbData = sizeof(DWORD);
+
         return ERROR_SUCCESS;
     }
 
     if (_wcsicmp(lpValueName, L"WMPState") == 0) {
         *(PDWORD)lpData = (0x0002 << 16) | (DWORD)26;
         *lpType = REG_DWORD;
+        *lpcbData = sizeof(DWORD);
+        
         return ERROR_SUCCESS;
     }
 
