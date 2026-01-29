@@ -1,9 +1,10 @@
 #include "hooks.h"
 #include "trampoline.h"
 #include "defs.h"
+#include "smtc.h"
 
-typedef HANDLE (WINAPI *_OpenEventW) (DWORD dwDesiredAccess, WINBOOL bInheritHandle, LPCWSTR lpName);
-typedef WINBOOL (WINAPI *_CloseHandle) (HANDLE hObject);
+typedef HANDLE (WINAPI *_OpenEventW) (DWORD dwDesiredAccess, BOOL bInheritHandle, LPCWSTR lpName);
+typedef BOOL (WINAPI *_CloseHandle) (HANDLE hObject);
 typedef UINT (WINAPI *_GlobalGetAtomNameW) (ATOM nAtom, LPWSTR lpBuffer, int nSize);
 typedef ATOM (WINAPI *_GlobalDeleteAtom) (ATOM nAtom);
 typedef LONG (WINAPI *_RegQueryValueExW) (HKEY hKey, LPCWSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
@@ -14,9 +15,8 @@ _GlobalGetAtomNameW OrigGlobalGetAtomNameW = NULL;
 _GlobalDeleteAtom OrigGlobalDeleteAtom = NULL;
 _RegQueryValueExW OrigRegQueryValueExW = NULL;
 
-HANDLE WINAPI DetourOpenEventW(DWORD dwDesiredAccess, WINBOOL bInheritHandle, LPCWSTR lpName) {
-    wprintf(L"\n%S", lpName);
-
+HANDLE WINAPI DetourOpenEventW(DWORD dwDesiredAccess, BOOL bInheritHandle, LPCWSTR lpName) {
+    wprintf(L"\n%ls", lpName);
     if (lpName == NULL) return NULL;
 
     if (_wcsicmp(lpName, PLUGIN_GUID) == 0) {
@@ -27,7 +27,7 @@ HANDLE WINAPI DetourOpenEventW(DWORD dwDesiredAccess, WINBOOL bInheritHandle, LP
 }
 
 LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData) {
-    wprintf(L"\n%S", lpValueName);
+    //wprintf(L"\n%ls", lpValueName);
 
     if (lpValueName == NULL) return OrigRegQueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
 
@@ -51,7 +51,7 @@ LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpRes
 }
 
 UINT WINAPI DetourGlobalGetAtomNameW(ATOM nAtom, LPWSTR lpBuffer, int nSize) {
-    wprintf(L"\nAtom - %u size - %u", nAtom, nSize);
+    //wprintf(L"\nAtom - %u size - %u", nAtom, nSize);
 
     if (nAtom == 1337) {
         wcscpy(lpBuffer, L"player=\"WMP\" track=\"test\"");
@@ -69,8 +69,8 @@ VOID WINAPI PrepareHooks(VOID) {
         AddrRegQueryValueExW = GetProcAddress(Advapi32, "RegQueryValueExW"),
         AddrGlobalGetAtomNameW = GetProcAddress(Kernel32, "GlobalGetAtomNameW");
 
-    OrigOpenEventW = EnableTrampoline((PVOID)AddrOpenEventW, (PVOID)DetourOpenEventW, 8);
-    OrigRegQueryValueExW = EnableTrampoline((PVOID)AddrRegQueryValueExW, (PVOID)DetourRegQueryValueExW, 5);
-    OrigGlobalGetAtomNameW = EnableTrampoline((PVOID)AddrGlobalGetAtomNameW, (PVOID)DetourGlobalGetAtomNameW, 5);
+    OrigOpenEventW = (_OpenEventW)EnableTrampoline((PVOID)AddrOpenEventW, (PVOID)DetourOpenEventW, 8);
+    OrigRegQueryValueExW = (_RegQueryValueExW)EnableTrampoline((PVOID)AddrRegQueryValueExW, (PVOID)DetourRegQueryValueExW, 5);
+    OrigGlobalGetAtomNameW = (_GlobalGetAtomNameW)EnableTrampoline((PVOID)AddrGlobalGetAtomNameW, (PVOID)DetourGlobalGetAtomNameW, 5);
 }
 
