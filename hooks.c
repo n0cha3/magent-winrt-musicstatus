@@ -18,7 +18,7 @@ _RegQueryValueExW OrigRegQueryValueExW = NULL;
 HANDLE WINAPI DetourOpenEventW(DWORD dwDesiredAccess, BOOL bInheritHandle, LPCWSTR lpName) {
     wprintf(L"\n%ls", lpName);
     if (lpName == NULL) return NULL;
-
+    
     if (_wcsicmp(lpName, PLUGIN_GUID) == 0) {
         return (PDWORD)1337;
     }
@@ -27,7 +27,7 @@ HANDLE WINAPI DetourOpenEventW(DWORD dwDesiredAccess, BOOL bInheritHandle, LPCWS
 }
 
 LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData) {
-    //wprintf(L"\n%ls", lpValueName);
+    wprintf(L"\n%ls", lpValueName);
 
     if (lpValueName == NULL) return OrigRegQueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
 
@@ -51,7 +51,7 @@ LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpRes
 }
 
 UINT WINAPI DetourGlobalGetAtomNameW(ATOM nAtom, LPWSTR lpBuffer, int nSize) {
-    //wprintf(L"\nAtom - %u size - %u", nAtom, nSize);
+    wprintf(L"\nAtom - %u size - %u", nAtom, nSize);
 
     if (nAtom == 1337) {
         wcscpy(lpBuffer, L"player=\"WMP\" track=\"test\"");

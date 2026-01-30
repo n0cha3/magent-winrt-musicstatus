@@ -7,9 +7,35 @@
 #include <winstring.h>
 #include <stdio.h>
 
-HANDLE Event;
-UINT32 RefCountSM = 0;
+static HANDLE Event;
 
+HRESULT STDMETHODCALLTYPE HandlerInvoke(
+    __FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This,
+    __FIAsyncOperation_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *asyncInfo,
+    AsyncStatus asyncStatus);
+
+ULONG STDMETHODCALLTYPE HandlerAddRef (__FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This);
+
+HRESULT STDMETHODCALLTYPE HandleQueryInterface(
+        __FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This,
+        REFIID riid,
+        void** ppvObject);
+
+ULONG STDMETHODCALLTYPE HandlerRelease(__FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This);
+
+__FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManagerVtbl AsyncHandlerVtable = {
+    .Invoke = HandlerInvoke,
+    .AddRef = HandlerAddRef,
+    .QueryInterface = HandleQueryInterface,
+    .Release = HandlerRelease
+};
+
+typedef struct _AsyncHandlerObject {
+    __FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager AsyncHandler;
+    DWORD RefCountSM;
+} AsyncHandlerObject;
+
+AsyncHandlerObject SmtcAsyncOperation;
 
 HRESULT STDMETHODCALLTYPE HandlerInvoke(
     __FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This,
@@ -19,14 +45,13 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
     UNREFERENCED_PARAMETER(This);
 
     if (asyncStatus == Completed) {
-        //printf("\n%s", "invoked");
+        printf("\n%s", "invoked");
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionManager *GSmtcSm;
         asyncInfo->lpVtbl->GetResults(asyncInfo, &GSmtcSm);
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSession *GSmtcS;
         GSmtcSm->lpVtbl->GetCurrentSession(GSmtcSm, &GSmtcS);
         __FIAsyncOperation_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionMediaProperties *IGsmtcMProp;
-        HRESULT FactoryStatus = GSmtcS->lpVtbl->TryGetMediaPropertiesAsync(GSmtcS, &IGsmtcMProp);
-        if (SUCCEEDED(FactoryStatus)) printf("\n%s\n", "success");
+        GSmtcS->lpVtbl->TryGetMediaPropertiesAsync(GSmtcS, &IGsmtcMProp);
 
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionMediaProperties *IGSmtcSMTP;
         IGsmtcMProp->lpVtbl->GetResults(IGsmtcMProp, &IGSmtcSMTP);
@@ -34,24 +59,28 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         IGSmtcSMTP->lpVtbl->get_Title(IGSmtcSMTP, &SongTitle);
         UINT32 StringSize;
 
+        IGSmtcSMTP->lpVtbl->Release(IGSmtcSMTP);
+        IGsmtcMProp->lpVtbl->Release(IGsmtcMProp);
+        GSmtcS->lpVtbl->Release(GSmtcS);
+        GSmtcSm->lpVtbl->Release(GSmtcSm);
+        asyncInfo->lpVtbl->Release(asyncInfo);
+
         printf("\n%ls\n", WindowsGetStringRawBuffer(SongTitle, &StringSize));
         SetEvent(Event);
     }
     return S_OK;
 }
 
-ULONG STDMETHODCALLTYPE HandlerAddRef (__FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This) {
-    //printf("\n%s", "added reference");
+ULONG STDMETHODCALLTYPE HandlerAddRef(__FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This) {
     UNREFERENCED_PARAMETER(This);
-    RefCountSM++;
-    return 0;
+    return SmtcAsyncOperation.RefCountSM++;
 }
 
-HRESULT STDMETHODCALLTYPE HandleQueryInterface (
+HRESULT STDMETHODCALLTYPE HandleQueryInterface(
         __FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This,
         REFIID riid,
         void** ppvObject) {
-        //printf("\n%s\n", "query");
+        printf("\n%s\n", "query");
 
         IID AsyncHandlerIID;
 
@@ -59,7 +88,7 @@ HRESULT STDMETHODCALLTYPE HandleQueryInterface (
         
         if (IsEqualIID(riid, &IID_IUnknown) || IsEqualIID(riid, &AsyncHandlerIID)) {
             *ppvObject = This;
-            RefCountSM++;
+            SmtcAsyncOperation.RefCountSM++;
             return S_OK;
         }
         return E_NOINTERFACE;
@@ -67,26 +96,8 @@ HRESULT STDMETHODCALLTYPE HandleQueryInterface (
 
 ULONG STDMETHODCALLTYPE HandlerRelease(__FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This) {
     (void)This;
-
-    //printf("\n%s\n", "release");
-
-   if (!RefCountSM) return 0;
-
-
-    RefCountSM--;
-    return RefCountSM;
+    return SmtcAsyncOperation.RefCountSM--;
 }
-
-__FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManagerVtbl AsyncHndlVtable = {
-    .Invoke = HandlerInvoke,
-    .AddRef = HandlerAddRef,
-    .QueryInterface = HandleQueryInterface,
-    .Release = HandlerRelease
-};
-
-__FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager AsyncHndl = {
-    .lpVtbl = &AsyncHndlVtable
-};
 
 BOOL WINAPI SmtcGetCurrTrackData(SmtcTrackMeta *TrackMetadata) {
     UNREFERENCED_PARAMETER(TrackMetadata);
@@ -95,10 +106,9 @@ BOOL WINAPI SmtcGetCurrTrackData(SmtcTrackMeta *TrackMetadata) {
 
     IIDFromString(L"{2050c4ee-11a0-57de-aed7-c97c70338245}", &GuidGsmtc);
 
-    //HRESULT WinRtStatus = RoInitialize(RO_INIT_MULTITHREADED);
+    HRESULT WinRtStatus = RoInitialize(RO_INIT_MULTITHREADED);
 
-    //if (SUCCEEDED(WinRtStatus)) printf("\n%s \n", "Loaded winrt");
-    //i'll add proper winrt init later
+    if (SUCCEEDED(WinRtStatus)) printf("\n%s \n", "Loaded winrt");
   
     __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionManagerStatics *IGlobSmtcS = NULL;
     __FIAsyncOperation_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *IAsyncGlobSmtc = NULL;
@@ -110,14 +120,15 @@ BOOL WINAPI SmtcGetCurrTrackData(SmtcTrackMeta *TrackMetadata) {
 
     IGlobSmtcS->lpVtbl->RequestAsync(IGlobSmtcS, &IAsyncGlobSmtc);
 
-    RefCountSM = 1;
+    SmtcAsyncOperation.RefCountSM = 1;
+    SmtcAsyncOperation.AsyncHandler.lpVtbl = &AsyncHandlerVtable;
     Event = CreateEventW(NULL, FALSE, FALSE, L"SMTCWaitTimer");
-
-    HRESULT FactoryStatus = IAsyncGlobSmtc->lpVtbl->put_Completed(IAsyncGlobSmtc, &AsyncHndl);
+    
+    HRESULT FactoryStatus = IAsyncGlobSmtc->lpVtbl->put_Completed(IAsyncGlobSmtc, &SmtcAsyncOperation.AsyncHandler);
     
     WaitForSingleObject(Event, INFINITE);
 
-    AsyncHndl.lpVtbl->Release(&AsyncHndl);
+    SmtcAsyncOperation.AsyncHandler.lpVtbl->Release(&SmtcAsyncOperation.AsyncHandler);
 
     if (FAILED(FactoryStatus)) {
         printf("%lx", FactoryStatus);

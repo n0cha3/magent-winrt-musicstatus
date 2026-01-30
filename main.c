@@ -13,6 +13,8 @@ BOOL WINAPI DllMain(HINSTANCE Instance, DWORD Reason, LPVOID Reserved) {
 		case DLL_PROCESS_ATTACH: {
 			AllocConsole();
 			freopen("CONOUT$", "w", stdout);
+
+			CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&SmtcGetCurrTrackData, NULL, 0, NULL);
 			PrepareHooks();
 			break;
 		}
