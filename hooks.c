@@ -16,7 +16,7 @@ _GlobalDeleteAtom OrigGlobalDeleteAtom = NULL;
 _RegQueryValueExW OrigRegQueryValueExW = NULL;
 
 HANDLE WINAPI DetourOpenEventW(DWORD dwDesiredAccess, BOOL bInheritHandle, LPCWSTR lpName) {
-    wprintf(L"\n%ls", lpName);
+    //wprintf(L"\n%ls", lpName);
     if (lpName == NULL) return NULL;
     
     if (_wcsicmp(lpName, PLUGIN_GUID) == 0) {
@@ -27,7 +27,7 @@ HANDLE WINAPI DetourOpenEventW(DWORD dwDesiredAccess, BOOL bInheritHandle, LPCWS
 }
 
 LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData) {
-    wprintf(L"\n%ls", lpValueName);
+    //wprintf(L"\n%ls", lpValueName);
 
     if (lpValueName == NULL) return OrigRegQueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
 
@@ -40,7 +40,7 @@ LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpRes
     }
 
     if (_wcsicmp(lpValueName, L"WMPState") == 0) {
-        *(PDWORD)lpData = (FLAG_PLAYING << 16) | (DWORD)26;
+        *(PDWORD)lpData = (FLAG_PLAYING << 16) | (DWORD)256;
         *lpType = REG_DWORD;
         *lpcbData = sizeof(DWORD);
 
@@ -51,10 +51,13 @@ LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpRes
 }
 
 UINT WINAPI DetourGlobalGetAtomNameW(ATOM nAtom, LPWSTR lpBuffer, int nSize) {
-    wprintf(L"\nAtom - %u size - %u", nAtom, nSize);
+    //wprintf(L"\nAtom - %u size - %u", nAtom, nSize);
 
     if (nAtom == 1337) {
-        wcscpy(lpBuffer, L"player=\"WMP\" track=\"test\"");
+        WCHAR Buffer[256];
+        //THIS IS TEMPORARY, IT DOES NOT CHECK THE STRING SIZE NOR IS IT THREAD SAFE. 
+        wsprintf(Buffer, L"%s\"\%s - %s \"", L"player=\"WMP\" track=", CurrentTrackMetadata.ArtistName, CurrentTrackMetadata.TrackName);
+        wcscpy(lpBuffer, Buffer);
         return nSize;
     }
 

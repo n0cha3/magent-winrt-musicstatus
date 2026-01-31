@@ -9,6 +9,8 @@
 
 static HANDLE Event;
 
+SmtcTrackMeta CurrentTrackMetadata;
+
 HRESULT STDMETHODCALLTYPE HandlerInvoke(
     __FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This,
     __FIAsyncOperation_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *asyncInfo,
@@ -45,7 +47,6 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
     UNREFERENCED_PARAMETER(This);
 
     if (asyncStatus == Completed) {
-        printf("\n%s", "invoked");
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionManager *GSmtcSm;
         asyncInfo->lpVtbl->GetResults(asyncInfo, &GSmtcSm);
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSession *GSmtcS;
@@ -55,8 +56,13 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
 
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionMediaProperties *IGSmtcSMTP;
         IGsmtcMProp->lpVtbl->GetResults(IGsmtcMProp, &IGSmtcSMTP);
-        HSTRING SongTitle;
+
+        HSTRING SongTitle,
+            ArtistName;
+
         IGSmtcSMTP->lpVtbl->get_Title(IGSmtcSMTP, &SongTitle);
+        IGSmtcSMTP->lpVtbl->get_Artist(IGSmtcSMTP, &ArtistName);
+
         UINT32 StringSize;
 
         IGSmtcSMTP->lpVtbl->Release(IGSmtcSMTP);
@@ -64,8 +70,13 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         GSmtcS->lpVtbl->Release(GSmtcS);
         GSmtcSm->lpVtbl->Release(GSmtcSm);
         asyncInfo->lpVtbl->Release(asyncInfo);
+        
+        PCWSTR TrackNameRawBuffer = WindowsGetStringRawBuffer(SongTitle, &StringSize);
+        printf("\n%ls\n", TrackNameRawBuffer);
+        PCWSTR ArtistNameRawBuffer = WindowsGetStringRawBuffer(ArtistName, &StringSize);
+        printf("\n%ls\n", ArtistNameRawBuffer);
+        wcscpy_s(CurrentTrackMetadata.ArtistName, 256, ArtistNameRawBuffer);
 
-        printf("\n%ls\n", WindowsGetStringRawBuffer(SongTitle, &StringSize));
         SetEvent(Event);
     }
     return S_OK;
@@ -80,7 +91,6 @@ HRESULT STDMETHODCALLTYPE HandleQueryInterface(
         __FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This,
         REFIID riid,
         void** ppvObject) {
-        printf("\n%s\n", "query");
 
         IID AsyncHandlerIID;
 
@@ -88,7 +98,7 @@ HRESULT STDMETHODCALLTYPE HandleQueryInterface(
         
         if (IsEqualIID(riid, &IID_IUnknown) || IsEqualIID(riid, &AsyncHandlerIID)) {
             *ppvObject = This;
-            SmtcAsyncOperation.RefCountSM++;
+            SmtcAsyncOperation.AsyncHandler.lpVtbl->AddRef(&SmtcAsyncOperation.AsyncHandler);
             return S_OK;
         }
         return E_NOINTERFACE;
@@ -99,40 +109,32 @@ ULONG STDMETHODCALLTYPE HandlerRelease(__FIAsyncOperationCompletedHandler_1_Wind
     return SmtcAsyncOperation.RefCountSM--;
 }
 
-BOOL WINAPI SmtcGetCurrTrackData(SmtcTrackMeta *TrackMetadata) {
-    UNREFERENCED_PARAMETER(TrackMetadata);
-
+BOOL WINAPI SmtcGetCurrTrackData() {
     IID GuidGsmtc;
 
     IIDFromString(L"{2050c4ee-11a0-57de-aed7-c97c70338245}", &GuidGsmtc);
 
-    HRESULT WinRtStatus = RoInitialize(RO_INIT_MULTITHREADED);
-
-    if (SUCCEEDED(WinRtStatus)) printf("\n%s \n", "Loaded winrt");
-  
+    RoInitialize(RO_INIT_MULTITHREADED);
     __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionManagerStatics *IGlobSmtcS = NULL;
     __FIAsyncOperation_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *IAsyncGlobSmtc = NULL;
     HSTRING ClassString;
 
-    WindowsCreateString(L"Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager", (UINT32)wcslen(L"Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager"), &ClassString);
-
-    RoGetActivationFactory(ClassString, &GuidGsmtc, (PVOID*)&IGlobSmtcS);
-
-    IGlobSmtcS->lpVtbl->RequestAsync(IGlobSmtcS, &IAsyncGlobSmtc);
-
     SmtcAsyncOperation.RefCountSM = 1;
     SmtcAsyncOperation.AsyncHandler.lpVtbl = &AsyncHandlerVtable;
+
+    WindowsCreateString(L"Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager", (UINT32)wcslen(L"Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager"), &ClassString);
+    RoGetActivationFactory(ClassString, &GuidGsmtc, (PVOID*)&IGlobSmtcS);
     Event = CreateEventW(NULL, FALSE, FALSE, L"SMTCWaitTimer");
-    
-    HRESULT FactoryStatus = IAsyncGlobSmtc->lpVtbl->put_Completed(IAsyncGlobSmtc, &SmtcAsyncOperation.AsyncHandler);
-    
-    WaitForSingleObject(Event, INFINITE);
 
-    SmtcAsyncOperation.AsyncHandler.lpVtbl->Release(&SmtcAsyncOperation.AsyncHandler);
+    while (TRUE) {
+        IGlobSmtcS->lpVtbl->RequestAsync(IGlobSmtcS, &IAsyncGlobSmtc);
+        IAsyncGlobSmtc->lpVtbl->put_Completed(IAsyncGlobSmtc, &SmtcAsyncOperation.AsyncHandler);
 
-    if (FAILED(FactoryStatus)) {
-        printf("%lx", FactoryStatus);
+        WaitForSingleObject(Event, INFINITE);
+        SmtcAsyncOperation.AsyncHandler.lpVtbl->Release(&SmtcAsyncOperation.AsyncHandler);
+    
+
     }
-
+    IAsyncGlobSmtc->lpVtbl->Release(IAsyncGlobSmtc);
     return 0;
 }

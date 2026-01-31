@@ -3,9 +3,13 @@
 #include "main.h"
 
 typedef struct _SmtcTrackMeta {
-    PWSTR TrackName;
-    PWSTR ArtistName;
+    WCHAR TrackName[256];
+    WCHAR ArtistName[256];
     BOOL IsPaused;
+    DWORD TrackNameLen;
+    DWORD ArtistNameLen;
 } SmtcTrackMeta;
 
-BOOL WINAPI SmtcGetCurrTrackData(SmtcTrackMeta *TrackMetadata);
+extern SmtcTrackMeta CurrentTrackMetadata;
+
+BOOL WINAPI SmtcGetCurrTrackData();

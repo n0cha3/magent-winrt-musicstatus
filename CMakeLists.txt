@@ -9,5 +9,5 @@ add_library(${PROJECT_NAME} SHARED main.c hooks.c trampoline.c smtc.c)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 target_compile_options(${PROJECT_NAME} PRIVATE -municode -Wall -Wextra -Werror -Wno-pointer-to-int-cast -O2)
-target_link_libraries(${PROJECT_NAME} mincore RuntimeObject) 
+target_link_libraries(${PROJECT_NAME} mincore runtimeobject) 
 
