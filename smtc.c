@@ -108,14 +108,26 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         asyncInfo->lpVtbl->Release(asyncInfo);
         
         PCWSTR TrackNameRawBuffer = WindowsGetStringRawBuffer(SongTitle, &TitleStringSize);
+
+        if (TitleStringSize > 50) {
+            WindowsDeleteString(SongTitle);
+            return S_FALSE;
+        }
+
         printf("\n%ls\n", TrackNameRawBuffer);
-        wcscpy_s(CurrentTrackMetadata.TrackName, 256, TrackNameRawBuffer);
+        wcscpy(CurrentTrackMetadata.TrackName, TrackNameRawBuffer);
         WindowsDeleteString(SongTitle);
 
 
         PCWSTR ArtistNameRawBuffer = WindowsGetStringRawBuffer(ArtistName, &ArtistStringSize);
+
+        if (ArtistStringSize > 50) {
+            WindowsDeleteString(ArtistName);
+            return S_FALSE;
+        }
+
         printf("\n%ls\n", ArtistNameRawBuffer);
-        wcscpy_s(CurrentTrackMetadata.ArtistName, 256, ArtistNameRawBuffer);
+        wcscpy(CurrentTrackMetadata.ArtistName, ArtistNameRawBuffer);
         WindowsDeleteString(ArtistName);
 
         CurrentTrackMetadata.TrackNameLen = TitleStringSize;
