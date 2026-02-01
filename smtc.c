@@ -113,11 +113,8 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
             WindowsDeleteString(SongTitle);
             return S_FALSE;
         }
-
-        printf("\n%ls\n", TrackNameRawBuffer);
         wcscpy(CurrentTrackMetadata.TrackName, TrackNameRawBuffer);
         WindowsDeleteString(SongTitle);
-
 
         PCWSTR ArtistNameRawBuffer = WindowsGetStringRawBuffer(ArtistName, &ArtistStringSize);
 
@@ -126,13 +123,11 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
             return S_FALSE;
         }
 
-        printf("\n%ls\n", ArtistNameRawBuffer);
         wcscpy(CurrentTrackMetadata.ArtistName, ArtistNameRawBuffer);
         WindowsDeleteString(ArtistName);
 
         CurrentTrackMetadata.TrackNameLen = TitleStringSize;
         CurrentTrackMetadata.ArtistNameLen = ArtistStringSize;
-
 
         SetEvent(Event);
     }
@@ -165,8 +160,6 @@ ULONG STDMETHODCALLTYPE HandlerRelease(__FIAsyncOperationCompletedHandler_1_Wind
     (void)This;
 
     if (!SmtcAsyncOperation.RefCountSM) return 0;
-
-
     return SmtcAsyncOperation.RefCountSM--;
 }
 
