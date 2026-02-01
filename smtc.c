@@ -8,7 +8,9 @@
 #include <winstring.h>
 #include <stdio.h>
 
-static HANDLE Event;
+static HANDLE Event = NULL;
+
+HANDLE SmtcEvent = NULL;
 
 SmtcTrackMeta CurrentTrackMetadata;
 
@@ -50,9 +52,10 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
     if (asyncStatus == Completed) {
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionManager *GSmtcSm;
         asyncInfo->lpVtbl->GetResults(asyncInfo, &GSmtcSm);
+        
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSession *GSmtcS;
         GSmtcSm->lpVtbl->GetCurrentSession(GSmtcSm, &GSmtcS);
-
+        
         if (GSmtcS == NULL) {
             GSmtcSm->lpVtbl->Release(GSmtcSm);
             asyncInfo->lpVtbl->Release(asyncInfo);
@@ -63,7 +66,16 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         __FIAsyncOperation_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionMediaProperties *IGsmtcMProp;
         GSmtcS->lpVtbl->TryGetMediaPropertiesAsync(GSmtcS, &IGsmtcMProp);
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionMediaProperties *IGSmtcSMTP;
-        IGsmtcMProp->lpVtbl->GetResults(IGsmtcMProp, &IGSmtcSMTP);
+        HRESULT Status = IGsmtcMProp->lpVtbl->GetResults(IGsmtcMProp, &IGSmtcSMTP);
+
+        if (!SUCCEEDED(Status)) {
+            IGsmtcMProp->lpVtbl->Release(IGsmtcMProp);
+            GSmtcS->lpVtbl->Release(GSmtcS);
+            GSmtcSm->lpVtbl->Release(GSmtcSm);
+            asyncInfo->lpVtbl->Release(asyncInfo);
+            SetEvent(Event);
+            return S_FALSE;
+        }
 
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionPlaybackInfo *IGSmtcPbInf;
 
@@ -130,6 +142,7 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         CurrentTrackMetadata.ArtistNameLen = ArtistStringSize;
 
         SetEvent(Event);
+        SetEvent(SmtcEvent);
     }
     return S_OK;
 }
@@ -165,6 +178,8 @@ ULONG STDMETHODCALLTYPE HandlerRelease(__FIAsyncOperationCompletedHandler_1_Wind
 
 VOID WINAPI SmtcGetCurrTrackData(VOID) {
     IID GuidGsmtc;
+
+    SmtcEvent = CreateEventW(NULL, FALSE, FALSE, L"SMTCStatusEvent");
 
     IIDFromString(L"{2050c4ee-11a0-57de-aed7-c97c70338245}", &GuidGsmtc);
 

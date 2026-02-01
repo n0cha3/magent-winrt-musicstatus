@@ -12,4 +12,6 @@ typedef struct _SmtcTrackMeta {
 
 extern SmtcTrackMeta CurrentTrackMetadata;
 
+extern HANDLE SmtcEvent;
+
 VOID WINAPI SmtcGetCurrTrackData(VOID);

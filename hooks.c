@@ -53,19 +53,26 @@ LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpRes
 }
 
 UINT WINAPI DetourGlobalGetAtomNameW(ATOM nAtom, LPWSTR lpBuffer, int nSize) {
+    BOOL IsSmtcReady = FALSE;
 
     if (nAtom == 1337) {
         WCHAR Buffer[256];
-        //THIS IS TEMPORARY, IT DOES NOT CHECK THE STRING SIZE NOR IS IT THREAD SAFE. 
-        wsprintf(Buffer, L"%ls\"\t %ls - %ls\"", L"player=\"WMP\" track=", CurrentTrackMetadata.ArtistName, CurrentTrackMetadata.TrackName);
-        wcscpy(lpBuffer, Buffer);
+
+        if (!WaitForSingleObject(SmtcEvent, 500)) IsSmtcReady = TRUE;
+
+        if (IsSmtcReady) {
+            wsprintf(Buffer, L"%ls\"%ls - %ls\"", L"player=\"WMP\" track=", CurrentTrackMetadata.ArtistName, CurrentTrackMetadata.TrackName);
+            wcscpy(lpBuffer, Buffer);
+        }
+
+        else 
+            memset(lpBuffer, 0, nSize);
+
         return nSize;
     }
 
     return OrigGlobalGetAtomNameW(nAtom, lpBuffer, nSize);
 }
-
-
 
 VOID WINAPI PrepareHooks(VOID) {
     HMODULE Kernel32 = GetModuleHandleW(L"Kernel32.dll"),
