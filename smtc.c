@@ -1,4 +1,5 @@
 #include "smtc.h"
+#include "defs.h"
 
 #include <initguid.h>
 #include <roapi.h>
@@ -51,7 +52,7 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         asyncInfo->lpVtbl->GetResults(asyncInfo, &GSmtcSm);
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSession *GSmtcS;
         GSmtcSm->lpVtbl->GetCurrentSession(GSmtcSm, &GSmtcS);
-        
+
         if (GSmtcS == NULL) {
             GSmtcSm->lpVtbl->Release(GSmtcSm);
             asyncInfo->lpVtbl->Release(asyncInfo);
@@ -64,29 +65,62 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionMediaProperties *IGSmtcSMTP;
         IGsmtcMProp->lpVtbl->GetResults(IGsmtcMProp, &IGSmtcSMTP);
 
+        __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionPlaybackInfo *IGSmtcPbInf;
+
+        GSmtcS->lpVtbl->GetPlaybackInfo(GSmtcS, &IGSmtcPbInf);
+
+        __x_ABI_CWindows_CMedia_CControl_CGlobalSystemMediaTransportControlsSessionPlaybackStatus SmtcPlaybackStatus;
+
+        IGSmtcPbInf->lpVtbl->get_PlaybackStatus(IGSmtcPbInf, &SmtcPlaybackStatus);
+
+        switch (SmtcPlaybackStatus) {
+
+            case GlobalSystemMediaTransportControlsSessionPlaybackStatus_Stopped: {
+                CurrentTrackMetadata.Status = FLAG_STOPPED;
+                break;
+            }
+
+            case GlobalSystemMediaTransportControlsSessionPlaybackStatus_Paused: {
+                CurrentTrackMetadata.Status = FLAG_PAUSED;
+                break;
+            }
+
+            default: {
+                CurrentTrackMetadata.Status = FLAG_PLAYING;
+                break;
+            }
+        }
+
         HSTRING SongTitle,
             ArtistName;
 
         IGSmtcSMTP->lpVtbl->get_Title(IGSmtcSMTP, &SongTitle);
         IGSmtcSMTP->lpVtbl->get_Artist(IGSmtcSMTP, &ArtistName);
 
-        UINT32 StringSize;
+        UINT32 ArtistStringSize,
+            TitleStringSize;
 
         IGSmtcSMTP->lpVtbl->Release(IGSmtcSMTP);
         IGsmtcMProp->lpVtbl->Release(IGsmtcMProp);
+        IGSmtcPbInf->lpVtbl->Release(IGSmtcPbInf);
         GSmtcS->lpVtbl->Release(GSmtcS);
         GSmtcSm->lpVtbl->Release(GSmtcSm);
         asyncInfo->lpVtbl->Release(asyncInfo);
         
-        PCWSTR TrackNameRawBuffer = WindowsGetStringRawBuffer(SongTitle, &StringSize);
+        PCWSTR TrackNameRawBuffer = WindowsGetStringRawBuffer(SongTitle, &TitleStringSize);
         printf("\n%ls\n", TrackNameRawBuffer);
         wcscpy_s(CurrentTrackMetadata.TrackName, 256, TrackNameRawBuffer);
         WindowsDeleteString(SongTitle);
 
-        PCWSTR ArtistNameRawBuffer = WindowsGetStringRawBuffer(ArtistName, &StringSize);
+
+        PCWSTR ArtistNameRawBuffer = WindowsGetStringRawBuffer(ArtistName, &ArtistStringSize);
         printf("\n%ls\n", ArtistNameRawBuffer);
         wcscpy_s(CurrentTrackMetadata.ArtistName, 256, ArtistNameRawBuffer);
         WindowsDeleteString(ArtistName);
+
+        CurrentTrackMetadata.TrackNameLen = TitleStringSize;
+        CurrentTrackMetadata.ArtistNameLen = ArtistStringSize;
+
 
         SetEvent(Event);
     }

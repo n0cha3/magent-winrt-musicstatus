@@ -5,7 +5,7 @@
 typedef struct _SmtcTrackMeta {
     WCHAR TrackName[256];
     WCHAR ArtistName[256];
-    BOOL IsPaused;
+    WORD Status;
     DWORD TrackNameLen;
     DWORD ArtistNameLen;
 } SmtcTrackMeta;

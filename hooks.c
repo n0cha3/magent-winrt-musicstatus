@@ -40,7 +40,7 @@ LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpRes
     }
 
     if (_wcsicmp(lpValueName, L"WMPState") == 0) {
-        *(PDWORD)lpData = (FLAG_PLAYING << 16) | (DWORD)256;
+        *(PDWORD)lpData = (CurrentTrackMetadata.Status << 16) | (DWORD)256;
         *lpType = REG_DWORD;
         *lpcbData = sizeof(DWORD);
 
