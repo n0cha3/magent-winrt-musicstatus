@@ -15,6 +15,7 @@ BOOL WINAPI DllMain(HINSTANCE Instance, DWORD Reason, LPVOID Reserved) {
 			freopen("CONOUT$", "w", stdout);
 
 			CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&SmtcGetCurrTrackData, NULL, 0, NULL);
+			
 			PrepareHooks();
 			break;
 		}

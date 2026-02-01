@@ -56,7 +56,7 @@ UINT WINAPI DetourGlobalGetAtomNameW(ATOM nAtom, LPWSTR lpBuffer, int nSize) {
     if (nAtom == 1337) {
         WCHAR Buffer[256];
         //THIS IS TEMPORARY, IT DOES NOT CHECK THE STRING SIZE NOR IS IT THREAD SAFE. 
-        wsprintf(Buffer, L"%s\"\%s - %s \"", L"player=\"WMP\" track=", CurrentTrackMetadata.ArtistName, CurrentTrackMetadata.TrackName);
+        wsprintf(Buffer, L"%ls\"\t %ls - %ls\"", L"player=\"WMP\" track=", CurrentTrackMetadata.ArtistName, CurrentTrackMetadata.TrackName);
         wcscpy(lpBuffer, Buffer);
         return nSize;
     }

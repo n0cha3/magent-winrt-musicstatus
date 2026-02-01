@@ -12,4 +12,4 @@ typedef struct _SmtcTrackMeta {
 
 extern SmtcTrackMeta CurrentTrackMetadata;
 
-BOOL WINAPI SmtcGetCurrTrackData();
+VOID WINAPI SmtcGetCurrTrackData(VOID);

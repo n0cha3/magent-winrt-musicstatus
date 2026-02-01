@@ -51,9 +51,16 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         asyncInfo->lpVtbl->GetResults(asyncInfo, &GSmtcSm);
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSession *GSmtcS;
         GSmtcSm->lpVtbl->GetCurrentSession(GSmtcSm, &GSmtcS);
+        
+        if (GSmtcS == NULL) {
+            GSmtcSm->lpVtbl->Release(GSmtcSm);
+            asyncInfo->lpVtbl->Release(asyncInfo);
+            SetEvent(Event);
+            return S_FALSE;
+        }
+
         __FIAsyncOperation_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionMediaProperties *IGsmtcMProp;
         GSmtcS->lpVtbl->TryGetMediaPropertiesAsync(GSmtcS, &IGsmtcMProp);
-
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionMediaProperties *IGSmtcSMTP;
         IGsmtcMProp->lpVtbl->GetResults(IGsmtcMProp, &IGSmtcSMTP);
 
@@ -73,9 +80,13 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         
         PCWSTR TrackNameRawBuffer = WindowsGetStringRawBuffer(SongTitle, &StringSize);
         printf("\n%ls\n", TrackNameRawBuffer);
+        wcscpy_s(CurrentTrackMetadata.TrackName, 256, TrackNameRawBuffer);
+        WindowsDeleteString(SongTitle);
+
         PCWSTR ArtistNameRawBuffer = WindowsGetStringRawBuffer(ArtistName, &StringSize);
         printf("\n%ls\n", ArtistNameRawBuffer);
         wcscpy_s(CurrentTrackMetadata.ArtistName, 256, ArtistNameRawBuffer);
+        WindowsDeleteString(ArtistName);
 
         SetEvent(Event);
     }
@@ -106,10 +117,14 @@ HRESULT STDMETHODCALLTYPE HandleQueryInterface(
 
 ULONG STDMETHODCALLTYPE HandlerRelease(__FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This) {
     (void)This;
+
+    if (!SmtcAsyncOperation.RefCountSM) return 0;
+
+
     return SmtcAsyncOperation.RefCountSM--;
 }
 
-BOOL WINAPI SmtcGetCurrTrackData() {
+VOID WINAPI SmtcGetCurrTrackData(VOID) {
     IID GuidGsmtc;
 
     IIDFromString(L"{2050c4ee-11a0-57de-aed7-c97c70338245}", &GuidGsmtc);
@@ -125,16 +140,14 @@ BOOL WINAPI SmtcGetCurrTrackData() {
     WindowsCreateString(L"Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager", (UINT32)wcslen(L"Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager"), &ClassString);
     RoGetActivationFactory(ClassString, &GuidGsmtc, (PVOID*)&IGlobSmtcS);
     Event = CreateEventW(NULL, FALSE, FALSE, L"SMTCWaitTimer");
-
     while (TRUE) {
         IGlobSmtcS->lpVtbl->RequestAsync(IGlobSmtcS, &IAsyncGlobSmtc);
         IAsyncGlobSmtc->lpVtbl->put_Completed(IAsyncGlobSmtc, &SmtcAsyncOperation.AsyncHandler);
-
         WaitForSingleObject(Event, INFINITE);
-        SmtcAsyncOperation.AsyncHandler.lpVtbl->Release(&SmtcAsyncOperation.AsyncHandler);
-    
-
+        Sleep(900);
     }
+    
+    /*SmtcAsyncOperation.AsyncHandler.lpVtbl->Release(&SmtcAsyncOperation.AsyncHandler);
     IAsyncGlobSmtc->lpVtbl->Release(IAsyncGlobSmtc);
-    return 0;
+    IGlobSmtcS->lpVtbl->Release(IGlobSmtcS);*/
 }
