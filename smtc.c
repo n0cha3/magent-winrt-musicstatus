@@ -66,9 +66,9 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         __FIAsyncOperation_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionMediaProperties *IGsmtcMProp;
         GSmtcS->lpVtbl->TryGetMediaPropertiesAsync(GSmtcS, &IGsmtcMProp);
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionMediaProperties *IGSmtcSMTP;
-        HRESULT Status = IGsmtcMProp->lpVtbl->GetResults(IGsmtcMProp, &IGSmtcSMTP);
+        HRESULT GetResStatus = IGsmtcMProp->lpVtbl->GetResults(IGsmtcMProp, &IGSmtcSMTP);
 
-        if (!SUCCEEDED(Status)) {
+        if (FAILED(GetResStatus)) {
             IGsmtcMProp->lpVtbl->Release(IGsmtcMProp);
             GSmtcS->lpVtbl->Release(GSmtcS);
             GSmtcSm->lpVtbl->Release(GSmtcSm);
@@ -194,14 +194,17 @@ VOID WINAPI SmtcGetCurrTrackData(VOID) {
     WindowsCreateString(L"Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager", (UINT32)wcslen(L"Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager"), &ClassString);
     RoGetActivationFactory(ClassString, &GuidGsmtc, (PVOID*)&IGlobSmtcS);
     Event = CreateEventW(NULL, FALSE, FALSE, L"SMTCWaitTimer");
+
     while (TRUE) {
-        IGlobSmtcS->lpVtbl->RequestAsync(IGlobSmtcS, &IAsyncGlobSmtc);
-        IAsyncGlobSmtc->lpVtbl->put_Completed(IAsyncGlobSmtc, &SmtcAsyncOperation.AsyncHandler);
-        WaitForSingleObject(Event, INFINITE);
-        Sleep(900);
+        HRESULT ReqAsyncStatus = IGlobSmtcS->lpVtbl->RequestAsync(IGlobSmtcS, &IAsyncGlobSmtc);
+        if (SUCCEEDED(ReqAsyncStatus)) {
+            HRESULT PutCompStatus = IAsyncGlobSmtc->lpVtbl->put_Completed(IAsyncGlobSmtc, &SmtcAsyncOperation.AsyncHandler);
+            if (SUCCEEDED(PutCompStatus)) {
+                WaitForSingleObject(Event, INFINITE);
+                ResetEvent(Event);
+                ResetEvent(SmtcEvent);
+            }
+            else IAsyncGlobSmtc->lpVtbl->Release(IAsyncGlobSmtc);
+        }
     }
-    
-    /*SmtcAsyncOperation.AsyncHandler.lpVtbl->Release(&SmtcAsyncOperation.AsyncHandler);
-    IAsyncGlobSmtc->lpVtbl->Release(IAsyncGlobSmtc);
-    IGlobSmtcS->lpVtbl->Release(IGlobSmtcS);*/
 }

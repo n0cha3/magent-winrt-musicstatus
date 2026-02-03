@@ -24,14 +24,15 @@ HANDLE WINAPI DetourOpenEventW(DWORD dwDesiredAccess, BOOL bInheritHandle, LPCWS
     if (lpName == NULL) return NULL;
     
     if (_wcsicmp(lpName, PLUGIN_GUID) == 0) {
-        return (PDWORD)1337;
+        if (WaitForSingleObject(SmtcEvent, 100) == WAIT_OBJECT_0) return (PDWORD)1337;
+
+        else return NULL;
     }
     
     return OrigOpenEventW(dwDesiredAccess, bInheritHandle, lpName);
 }
 
 LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData) {
-
     if (lpValueName == NULL) return OrigRegQueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
 
     if (_wcsicmp(lpValueName, L"WMPLen") == 0) {
@@ -53,24 +54,13 @@ LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpRes
 }
 
 UINT WINAPI DetourGlobalGetAtomNameW(ATOM nAtom, LPWSTR lpBuffer, int nSize) {
-    BOOL IsSmtcReady = FALSE;
-
     if (nAtom == 1337) {
         WCHAR Buffer[256];
-
-        if (!WaitForSingleObject(SmtcEvent, 500)) IsSmtcReady = TRUE;
-
-        if (IsSmtcReady) {
-            wsprintf(Buffer, L"%ls\"%ls - %ls\"", L"player=\"WMP\" track=", CurrentTrackMetadata.ArtistName, CurrentTrackMetadata.TrackName);
-            wcscpy(lpBuffer, Buffer);
-        }
-
-        else 
-            memset(lpBuffer, 0, nSize);
+        wsprintf(Buffer, L"%ls\"%ls - %ls\"", L"player=\"WMP\" track=", CurrentTrackMetadata.ArtistName, CurrentTrackMetadata.TrackName);
+        wcscpy(lpBuffer, Buffer);
 
         return nSize;
     }
-
     return OrigGlobalGetAtomNameW(nAtom, lpBuffer, nSize);
 }
 
