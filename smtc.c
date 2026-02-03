@@ -48,7 +48,6 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
     AsyncStatus asyncStatus) {
     
     UNREFERENCED_PARAMETER(This);
-
     if (asyncStatus == Completed) {
         __x_ABI_CWindows_CMedia_CControl_CIGlobalSystemMediaTransportControlsSessionManager *GSmtcSm;
         asyncInfo->lpVtbl->GetResults(asyncInfo, &GSmtcSm);
@@ -58,7 +57,6 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         
         if (GSmtcS == NULL) {
             GSmtcSm->lpVtbl->Release(GSmtcSm);
-            asyncInfo->lpVtbl->Release(asyncInfo);
             SetEvent(Event);
             return S_FALSE;
         }
@@ -72,7 +70,6 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
             IGsmtcMProp->lpVtbl->Release(IGsmtcMProp);
             GSmtcS->lpVtbl->Release(GSmtcS);
             GSmtcSm->lpVtbl->Release(GSmtcSm);
-            asyncInfo->lpVtbl->Release(asyncInfo);
             SetEvent(Event);
             return S_FALSE;
         }
@@ -84,7 +81,6 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         __x_ABI_CWindows_CMedia_CControl_CGlobalSystemMediaTransportControlsSessionPlaybackStatus SmtcPlaybackStatus;
 
         IGSmtcPbInf->lpVtbl->get_PlaybackStatus(IGSmtcPbInf, &SmtcPlaybackStatus);
-
         switch (SmtcPlaybackStatus) {
 
             case GlobalSystemMediaTransportControlsSessionPlaybackStatus_Stopped: {
@@ -117,7 +113,6 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         IGSmtcPbInf->lpVtbl->Release(IGSmtcPbInf);
         GSmtcS->lpVtbl->Release(GSmtcS);
         GSmtcSm->lpVtbl->Release(GSmtcSm);
-        asyncInfo->lpVtbl->Release(asyncInfo);
         
         PCWSTR TrackNameRawBuffer = WindowsGetStringRawBuffer(SongTitle, &TitleStringSize);
 
@@ -204,7 +199,9 @@ VOID WINAPI SmtcGetCurrTrackData(VOID) {
                 ResetEvent(Event);
                 ResetEvent(SmtcEvent);
             }
-            else IAsyncGlobSmtc->lpVtbl->Release(IAsyncGlobSmtc);
+            IAsyncGlobSmtc->lpVtbl->Release(IAsyncGlobSmtc);
+
         }
+        Sleep(100);
     }
 }
