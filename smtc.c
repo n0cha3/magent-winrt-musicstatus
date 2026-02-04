@@ -195,14 +195,15 @@ VOID WINAPI SmtcGetCurrTrackData(VOID) {
 
     while (TRUE) {
         ResetEvent(Event);
+        
         HRESULT ReqAsyncStatus = IGlobSmtcS->lpVtbl->RequestAsync(IGlobSmtcS, &IAsyncGlobSmtc);
         if (SUCCEEDED(ReqAsyncStatus)) {
-            ResetEvent(SmtcEvent);
             HRESULT PutCompStatus = IAsyncGlobSmtc->lpVtbl->put_Completed(IAsyncGlobSmtc, &SmtcAsyncOperation.AsyncHandler);
+            ResetEvent(SmtcEvent);
             if (SUCCEEDED(PutCompStatus)) {
                 WaitForSingleObject(Event, INFINITE);
             }
         }
-        Sleep(900);
+        Sleep(140);
     }
 }
