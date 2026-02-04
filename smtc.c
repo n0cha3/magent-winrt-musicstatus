@@ -57,6 +57,7 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         
         if (GSmtcS == NULL) {
             GSmtcSm->lpVtbl->Release(GSmtcSm);
+            asyncInfo->lpVtbl->Release(asyncInfo);
             SetEvent(Event);
             return S_FALSE;
         }
@@ -70,6 +71,7 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
             IGsmtcMProp->lpVtbl->Release(IGsmtcMProp);
             GSmtcS->lpVtbl->Release(GSmtcS);
             GSmtcSm->lpVtbl->Release(GSmtcSm);
+            asyncInfo->lpVtbl->Release(asyncInfo);
             SetEvent(Event);
             return S_FALSE;
         }
@@ -113,6 +115,7 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
         IGSmtcPbInf->lpVtbl->Release(IGSmtcPbInf);
         GSmtcS->lpVtbl->Release(GSmtcS);
         GSmtcSm->lpVtbl->Release(GSmtcSm);
+        asyncInfo->lpVtbl->Release(asyncInfo);
         
         PCWSTR TrackNameRawBuffer = WindowsGetStringRawBuffer(SongTitle, &TitleStringSize);
 
@@ -199,9 +202,7 @@ VOID WINAPI SmtcGetCurrTrackData(VOID) {
                 ResetEvent(Event);
                 ResetEvent(SmtcEvent);
             }
-            IAsyncGlobSmtc->lpVtbl->Release(IAsyncGlobSmtc);
-
         }
-        Sleep(100);
+        Sleep(230);
     }
 }
