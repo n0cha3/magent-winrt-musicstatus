@@ -56,7 +56,10 @@ LONG WINAPI DetourRegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpRes
 UINT WINAPI DetourGlobalGetAtomNameW(ATOM nAtom, LPWSTR lpBuffer, int nSize) {
     if (nAtom == 1337) {
         WCHAR Buffer[256];
-        wsprintf(Buffer, L"%ls\"%ls - %ls\"", L"player=\"WMP\" track=", CurrentTrackMetadata.ArtistName, CurrentTrackMetadata.TrackName);
+        
+        if (CurrentTrackMetadata.ArtistNameLen != 0) wsprintf(Buffer, L"%ls\"%ls - %ls\"", L"player=\"WMP\" track=", CurrentTrackMetadata.ArtistName, CurrentTrackMetadata.TrackName);
+        else wsprintf(Buffer, L"%ls\"%ls\"", L"player=\"WMP\" track=", CurrentTrackMetadata.TrackName);
+  
         wcscpy(lpBuffer, Buffer);
 
         return nSize;
