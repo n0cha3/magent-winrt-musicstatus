@@ -67,6 +67,12 @@ UINT WINAPI DetourGlobalGetAtomNameW(ATOM nAtom, LPWSTR lpBuffer, int nSize) {
     return OrigGlobalGetAtomNameW(nAtom, lpBuffer, nSize);
 }
 
+ATOM WINAPI DetourGlobalDeleteAtom(ATOM nAtom) {
+    if (nAtom == 1337) return 0;
+
+    return OrigGlobalDeleteAtom(nAtom);
+}
+
 VOID WINAPI PrepareHooks(VOID) {
     HMODULE Kernel32 = GetModuleHandleW(L"Kernel32.dll"),
         Advapi32 = GetModuleHandleW(L"Advapi32.dll");
@@ -74,11 +80,15 @@ VOID WINAPI PrepareHooks(VOID) {
     FARPROC AddrOpenEventW = GetProcAddress(Kernel32, "OpenEventW"),
         AddrRegQueryValueExW = GetProcAddress(Advapi32, "RegQueryValueExW"),
         AddrGlobalGetAtomNameW = GetProcAddress(Kernel32, "GlobalGetAtomNameW"),
-        AddrCloseHandle = GetProcAddress(Kernel32, "CloseHandle");
+        AddrCloseHandle = GetProcAddress(Kernel32, "CloseHandle"),
+        AddrGlobalDeleteAtom = GetProcAddress(Kernel32, "GlobalDeleteAtom");
 
     OrigOpenEventW = (_OpenEventW)EnableTrampoline((PVOID)AddrOpenEventW, (PVOID)DetourOpenEventW, 8);
     OrigCloseHandle = (_CloseHandle)EnableTrampoline((PVOID)AddrCloseHandle, (PVOID)DetourCloseHandle, 8);
+    
     OrigRegQueryValueExW = (_RegQueryValueExW)EnableTrampoline((PVOID)AddrRegQueryValueExW, (PVOID)DetourRegQueryValueExW, 5);
-    OrigGlobalGetAtomNameW = (_GlobalGetAtomNameW)EnableTrampoline((PVOID)AddrGlobalGetAtomNameW, (PVOID)DetourGlobalGetAtomNameW, 5);
+
+    OrigGlobalGetAtomNameW = (_GlobalGetAtomNameW)EnableTrampoline((PVOID)AddrGlobalGetAtomNameW, (PVOID)DetourGlobalGetAtomNameW, 5),
+    OrigGlobalDeleteAtom = (_GlobalDeleteAtom)EnableTrampoline((PVOID)AddrGlobalDeleteAtom, (PVOID)DetourGlobalDeleteAtom, 5);
 }
 
