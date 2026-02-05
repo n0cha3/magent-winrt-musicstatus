@@ -24,7 +24,7 @@ HANDLE WINAPI DetourOpenEventW(DWORD dwDesiredAccess, BOOL bInheritHandle, LPCWS
     if (lpName == NULL) return NULL;
     
     if (_wcsicmp(lpName, PLUGIN_GUID) == 0) {
-        if (WaitForSingleObject(SmtcEvent, 200) == WAIT_OBJECT_0) return (PDWORD)1337;
+        if (WaitForSingleObject(SmtcEvent, 4) == WAIT_OBJECT_0) return (PDWORD)1337;
 
         else return NULL;
     }
