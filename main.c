@@ -2,17 +2,21 @@
 #include "hooks.h"
 #include "smtc.h"
 
-__declspec(dllexport) VOID __cdecl exportme(VOID) {
+__declspec(dllexport) VOID __cdecl importme(VOID) {
 	return;
 }
 
-BOOL WINAPI DllMain(HINSTANCE Instance, DWORD Reason, LPVOID Reserved) {
-	UNREFERENCED_PARAMETER(Instance);
+VOID NTAPI InitHook(VOID) {
+    ((PPEB)__readfsdword(0x30))->PostProcessInitRoutine = NULL;
+    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&SmtcGetCurrTrackData, NULL, 0, NULL);
+    PrepareHooks();
+}
 
+BOOL WINAPI DllMain(HINSTANCE Instance, DWORD Reason, LPVOID Reserved) {
 	switch (Reason) {
 		case DLL_PROCESS_ATTACH: {
-			CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&SmtcGetCurrTrackData, NULL, 0, NULL);
-			PrepareHooks();
+            ((PPEB)__readfsdword(0x30))->PostProcessInitRoutine = InitHook;
+			DisableThreadLibraryCalls(Instance);
 			break;
 		}
 

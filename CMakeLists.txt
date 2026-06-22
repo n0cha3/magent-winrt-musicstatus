@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 99)
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 
-add_library(${PROJECT_NAME} SHARED main.c hooks.c trampoline.c smtc.c)
+add_library(${PROJECT_NAME} SHARED main.c hooks.c iathook.c smtc.c)
 
 if (MSVC)
 add_compile_definitions(_UNICODE=1 UNICODE=1)

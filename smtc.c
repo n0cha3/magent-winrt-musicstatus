@@ -37,7 +37,7 @@ __FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMed
 
 typedef struct _AsyncHandlerObject {
     __FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager AsyncHandler;
-    DWORD RefCountSM;
+    LONG RefCountSM;
 } AsyncHandlerObject;
 
 AsyncHandlerObject SmtcAsyncOperation;
@@ -147,7 +147,7 @@ HRESULT STDMETHODCALLTYPE HandlerInvoke(
 
 ULONG STDMETHODCALLTYPE HandlerAddRef(__FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This) {
     UNREFERENCED_PARAMETER(This);
-    return SmtcAsyncOperation.RefCountSM++;
+    return InterlockedIncrement(&SmtcAsyncOperation.RefCountSM);
 }
 
 HRESULT STDMETHODCALLTYPE HandleQueryInterface(
@@ -169,9 +169,12 @@ HRESULT STDMETHODCALLTYPE HandleQueryInterface(
 
 ULONG STDMETHODCALLTYPE HandlerRelease(__FIAsyncOperationCompletedHandler_1_Windows__CMedia__CControl__CGlobalSystemMediaTransportControlsSessionManager *This) {
     (void)This;
-
-    if (!SmtcAsyncOperation.RefCountSM) return 0;
-    return SmtcAsyncOperation.RefCountSM--;
+    LONG Refs = InterlockedDecrement(&SmtcAsyncOperation.RefCountSM);
+    if (Refs == 0) {
+        This = NULL;
+        return 0;
+    } 
+    return Refs;
 }
 
 VOID WINAPI SmtcGetCurrTrackData(VOID) {

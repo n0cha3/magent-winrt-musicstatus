@@ -1,5 +1,5 @@
 #include "hooks.h"
-#include "trampoline.h"
+#include "iathook.h"
 #include "defs.h"
 #include "smtc.h"
 
@@ -74,21 +74,10 @@ ATOM WINAPI DetourGlobalDeleteAtom(ATOM nAtom) {
 }
 
 VOID WINAPI PrepareHooks(VOID) {
-    HMODULE Kernel32 = GetModuleHandleW(L"Kernel32.dll"),
-        Advapi32 = GetModuleHandleW(L"Advapi32.dll");
-
-    FARPROC AddrOpenEventW = GetProcAddress(Kernel32, "OpenEventW"),
-        AddrRegQueryValueExW = GetProcAddress(Advapi32, "RegQueryValueExW"),
-        AddrGlobalGetAtomNameW = GetProcAddress(Kernel32, "GlobalGetAtomNameW"),
-        AddrCloseHandle = GetProcAddress(Kernel32, "CloseHandle"),
-        AddrGlobalDeleteAtom = GetProcAddress(Kernel32, "GlobalDeleteAtom");
-
-    OrigOpenEventW = (_OpenEventW)EnableTrampoline((PVOID)AddrOpenEventW, (PVOID)DetourOpenEventW, 8);
-    OrigCloseHandle = (_CloseHandle)EnableTrampoline((PVOID)AddrCloseHandle, (PVOID)DetourCloseHandle, 8);
-    
-    OrigRegQueryValueExW = (_RegQueryValueExW)EnableTrampoline((PVOID)AddrRegQueryValueExW, (PVOID)DetourRegQueryValueExW, 5);
-
-    OrigGlobalGetAtomNameW = (_GlobalGetAtomNameW)EnableTrampoline((PVOID)AddrGlobalGetAtomNameW, (PVOID)DetourGlobalGetAtomNameW, 5),
-    OrigGlobalDeleteAtom = (_GlobalDeleteAtom)EnableTrampoline((PVOID)AddrGlobalDeleteAtom, (PVOID)DetourGlobalDeleteAtom, 5);
+    OrigOpenEventW = (_OpenEventW)HookIatFunc(L"Kernel32.dll", "OpenEventW", (PVOID)DetourOpenEventW);
+    OrigCloseHandle = (_CloseHandle)HookIatFunc(L"Kernel32.dll", "CloseHandle", DetourCloseHandle);
+    OrigRegQueryValueExW = (_RegQueryValueExW)HookIatFunc(L"Advapi32.dll", "RegQueryValueExW", DetourRegQueryValueExW);
+    OrigGlobalGetAtomNameW = (_GlobalGetAtomNameW)HookIatFunc(L"Kernel32.dll", "GlobalGetAtomNameW", DetourGlobalGetAtomNameW);
+    OrigGlobalDeleteAtom = (_GlobalDeleteAtom)HookIatFunc(L"Kernel32.dll", "GlobalDeleteAtom", DetourGlobalDeleteAtom);
 }
 
